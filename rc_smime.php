@@ -14,7 +14,7 @@ class rc_smime extends rcube_plugin
 
     function init()
     {
-        $this->rc    = rcube::get_instance();
+        $this->rc    = rcmail::get_instance();
         $this->uname = $this->rc->user->get_username();
         $homedir     = $this->rc->config->get('rc_smime_homedir', $this->home . '/users');
 
@@ -65,7 +65,7 @@ class rc_smime extends rcube_plugin
             switch ($sig['valid']) {
                 case "valid":
                     $attrib['class'] = 'smime-notice';
-                    $smime_msg       = rcube::Q($this->gettext(array(
+                    $smime_msg       = Q($this->gettext(array(
                         'name' => 'sigvalid',
                         'vars' => array(
                             'sender' => $smime_sender,
@@ -75,7 +75,7 @@ class rc_smime extends rcube_plugin
                     break;
                 case "unverified":
                     $attrib['class'] = 'smime-warning';
-                    $smime_msg       = rcube::Q($this->gettext(array(
+                    $smime_msg       = Q($this->gettext(array(
                         'name' => 'sigunverified',
                         'vars' => array(
                             'sender' => $smime_sender,
@@ -85,7 +85,7 @@ class rc_smime extends rcube_plugin
                     break;
                 default:
                     $attrib['class'] = 'smime-error';
-                    $smime_msg       = rcube::Q($this->gettext('siginvalid'));
+                    $smime_msg       = Q($this->gettext('siginvalid'));
             }
 
             $args['prefix'] .= html::div($attrib, $smime_msg);
@@ -132,7 +132,7 @@ class rc_smime extends rcube_plugin
             $part_file = tempnam($this->homedir, 'rcube_mail_part_');
 
             $full_handle = fopen($full_file, "w");
-            $fullbody    = $this->rc->storage->get_raw_body($msg->uid, $full_handle);
+            $fullbody    = $this->rc->imap->get_raw_body($msg->uid, $full_handle);
             fclose($full_handle);
 
             $out = array(
@@ -160,13 +160,13 @@ class rc_smime extends rcube_plugin
                     $out['valid'] = 'invalid';
                 } else {
                     $part_handle = fopen($part_file, "w");
-                    $mimes       = $this->rc->storage->conn->fetchMIMEHeaders($msg->folder, $msg->uid, $struct->mime_id, true);
+                    $mimes       = $this->rc->imap->conn->fetchMIMEHeaders($msg->folder, $msg->uid, $struct->mime_id, true);
                     foreach (array_values($mimes) as $mime) {
                         fwrite($part_handle, $mime);
                     }
 
                     fwrite($part_handle, "\n");
-                    $part_out = $this->rc->storage->conn->handlePartBody($msg->folder, $msg->uid, true, $struct->mime_id, null, null, $part_handle);
+                    $part_out = $this->rc->imap->conn->handlePartBody($msg->folder, $msg->uid, true, $struct->mime_id, null, null, $part_handle);
                     fclose($part_handle);
                     $sig      = openssl_pkcs7_verify($part_file, 0, $cert_file);
                     $errorstr = $this->get_openssl_error();
@@ -288,7 +288,7 @@ class rc_smime extends rcube_plugin
     private function set_part_body($part, $uid)
     {
         if (!isset($part->body)) {
-            $part->body = $this->rc->storage->get_message_part($uid, $part->mime_id, $part);
+            $part->body = $this->rc->imap->get_message_part($uid, $part->mime_id, $part);
         }
     }
 
